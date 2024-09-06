@@ -10,167 +10,110 @@ import AVKit
 import UIKit
 #endif
 
-#if os(iOS)
+
 @available(iOS 15.0, *)
 public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlaybackDelegate, AVPictureInPictureControllerDelegate {
+    
     private var bufferDisplayLayer: AVSampleBufferDisplayLayer = AVSampleBufferDisplayLayer()
     private var pipController: AVPictureInPictureController? = nil
     private var videoFormat: CMVideoFormatDescription? = nil
-    private var notificationCenter: NotificationCenter {
-        return .default
-    }
-
+    
+    // Initialization
     override init(handle: Int64, configuration: VideoOutputConfiguration, registry: FlutterTextureRegistry, textureUpdateCallback: @escaping VideoOutput.TextureUpdateCallback) {
         super.init(handle: handle, configuration: configuration, registry: registry, textureUpdateCallback: textureUpdateCallback)
-
-        // Observe app background/foreground state
-        notificationCenter.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
-        notificationCenter.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
+        
+        // Notification observers for app state
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
     }
-
+    
     deinit {
-        notificationCenter.removeObserver(self)
+        NotificationCenter.default.removeObserver(self)
     }
-
-    // Handle when app comes to foreground
+    
+    @objc private func appWillResignActive(_ notification: NSNotification) {
+        // Handle app going to background
+        if pipController != nil, pipController!.isPictureInPictureActive {
+            switchToSoftwareRendering()
+        }
+    }
+    
     @objc private func appWillEnterForeground(_ notification: NSNotification) {
         worker.enqueue {
             self.switchToHardwareRendering()
         }
     }
-
-    // Handle when app goes to background
-    @objc private func appWillResignActive(_ notification: NSNotification) {
-        guard let pipController = pipController else { return }
-
-        if pipController.canStartPictureInPictureAutomaticallyFromInline || pipController.isPictureInPictureActive {
-            switchToSoftwareRendering()
-            return
-        }
-
-        var isPaused: Int8 = 0
-        mpv_get_property(handle, "pause", MPV_FORMAT_FLAG, &isPaused)
-
-        if isPaused == 1 {
-            return
-        }
-
-        // Pause playback when app goes to background and PiP isn't active
-        mpv_command_string(handle, "cycle pause")
-    }
-
+    
     override public func refreshPlaybackState() {
         pipController?.invalidatePlaybackState()
     }
 
     override public func enablePictureInPicture() -> Bool {
-        guard pipController == nil else {
-            return true
+        if pipController == nil {
+            bufferDisplayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+            bufferDisplayLayer.opacity = 0
+            bufferDisplayLayer.videoGravity = .resizeAspect
+            
+            let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
+            pipController = AVPictureInPictureController(contentSource: contentSource)
+            pipController?.delegate = self
+            
+            UIApplication.shared.keyWindow?.rootViewController?.view.layer.addSublayer(bufferDisplayLayer)
         }
-
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback)
-        } catch {
-            NSLog("AVAudioSession set category failed")
-        }
-
-        bufferDisplayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
-        bufferDisplayLayer.opacity = 0
-        bufferDisplayLayer.videoGravity = .resizeAspect
-
-        let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
-        pipController = AVPictureInPictureController(contentSource: contentSource)
-        pipController?.delegate = self
-
-        let controller = UIApplication.shared.keyWindow?.rootViewController
-        controller?.view.layer.addSublayer(bufferDisplayLayer)
-
         return true
     }
-
+    
     override public func disablePictureInPicture() {
         bufferDisplayLayer.removeFromSuperlayer()
         pipController = nil
     }
-
-    override public func enableAutoPictureInPicture() -> Bool {
-        if enablePictureInPicture() {
-            pipController?.canStartPictureInPictureAutomaticallyFromInline = true
-            return true
-        }
-        return false
-    }
-
-    override public func disableAutoPictureInPicture() {
-        pipController?.canStartPictureInPictureAutomaticallyFromInline = false
-    }
-
+    
     override public func enterPictureInPicture() -> Bool {
-        if enablePictureInPicture() {
-            pipController?.startPictureInPicture()
+        if let pipController = pipController {
+            pipController.startPictureInPicture()
             return true
         }
         return false
     }
-
+    
     override func _updateCallback() {
+        // Custom update callback for PiP
         super._updateCallback()
-
-        guard let pipController = pipController else { return }
-
-        let pixelBuffer = texture.copyPixelBuffer()?.takeUnretainedValue()
-        guard let pixelBuffer = pixelBuffer else { return }
-
-        var sampleBuffer: CMSampleBuffer?
-
-        if videoFormat == nil || !CMVideoFormatDescriptionMatchesImageBuffer(videoFormat!, imageBuffer: pixelBuffer) {
-            videoFormat = nil
-
-            let err = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, formatDescriptionOut: &videoFormat)
-            if err != noErr {
-                NSLog("Error at CMVideoFormatDescriptionCreateForImageBuffer \(err)")
+        
+        if pipController != nil, let pixelBuffer = texture.copyPixelBuffer()?.takeUnretainedValue() {
+            var sampleBuffer: CMSampleBuffer?
+            if videoFormat == nil || !CMVideoFormatDescriptionMatchesImageBuffer(videoFormat!, imageBuffer: pixelBuffer) {
+                videoFormat = nil
+                let err = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, formatDescriptionOut: &videoFormat)
+                if err != noErr {
+                    NSLog("Error creating video format description: \(err)")
+                }
+            }
+            var timingInfo = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: CMTime(seconds: CACurrentMediaTime(), preferredTimescale: 100), decodeTimeStamp: .invalid)
+            let err = CMSampleBufferCreateForImageBuffer(allocator: nil, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: videoFormat!, sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
+            if err == noErr {
+                bufferDisplayLayer.enqueue(sampleBuffer!)
             }
         }
-
-        var sampleTimingInfo = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: CMTime(seconds: CACurrentMediaTime(), preferredTimescale: 100), decodeTimeStamp: .invalid)
-
-        let err = CMSampleBufferCreateForImageBuffer(allocator: nil, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: videoFormat!, sampleTiming: &sampleTimingInfo, sampleBufferOut: &sampleBuffer)
-        if err == noErr, let sampleBuffer = sampleBuffer {
-            bufferDisplayLayer.enqueue(sampleBuffer)
-        } else {
-            NSLog("Error at CMSampleBufferCreateForImageBuffer \(err)")
-        }
-    }
-
-    public override func dispose() {
-        super.dispose()
-        disablePictureInPicture()
     }
 
     // MARK: - AVPictureInPictureSampleBufferPlaybackDelegate
-
     public func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, setPlaying playing: Bool) {
         var isPaused: Int8 = 0
         mpv_get_property(handle, "pause", MPV_FORMAT_FLAG, &isPaused)
-
-        if playing == (isPaused == 0) {
-            return
+        if playing != (isPaused == 0) {
+            mpv_command_string(handle, "cycle pause")
         }
-
-        mpv_command_string(handle, "cycle pause")
     }
 
     public func pictureInPictureControllerTimeRangeForPlayback(_ pictureInPictureController: AVPictureInPictureController) -> CMTimeRange {
         var position: Double = 0
         mpv_get_property(handle, "time-pos", MPV_FORMAT_DOUBLE, &position)
-
+        
         var duration: Double = 0
         mpv_get_property(handle, "duration", MPV_FORMAT_DOUBLE, &duration)
-
-        return CMTimeRange(
-            start: CMTime(seconds: CACurrentMediaTime() - position, preferredTimescale: 100),
-            duration: CMTime(seconds: duration, preferredTimescale: 100)
-        )
+        
+        return CMTimeRange(start: CMTime(seconds: CACurrentMediaTime() - position, preferredTimescale: 100), duration: CMTime(seconds: duration, preferredTimescale: 100))
     }
 
     public func pictureInPictureControllerIsPlaybackPaused(_ pictureInPictureController: AVPictureInPictureController) -> Bool {
@@ -183,12 +126,13 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         mpv_command_string(handle, "seek \(skipInterval.seconds)")
         completionHandler()
     }
-
+    
     public func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, failedToStartPictureInPictureWithError error: Error) {
-        NSLog("pictureInPictureController error: \(error)")
+        NSLog("Picture in Picture failed with error: \(error)")
     }
 
     public func pictureInPictureControllerWillStopPictureInPicture(_ pictureInPictureController: AVPictureInPictureController) {
+        // Handle stopping PiP
     }
 }
 #endif
