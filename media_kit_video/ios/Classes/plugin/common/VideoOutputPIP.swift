@@ -1,1 +1,1 @@
-../../../media_kit_video/common/darwin/Classes/plugin/VideoOutputPIP.swift
+../../../../common/darwin/Classes/plugin/VideoOutputPIP.swift
