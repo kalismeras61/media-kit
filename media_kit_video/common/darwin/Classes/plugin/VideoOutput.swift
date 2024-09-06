@@ -144,7 +144,7 @@ public class VideoOutput: NSObject {
       )
     }
 
-   if enableHardwareAcceleration && allowHardwareAcceleration {
+   if enableHardwareAcceleration {
       texture = SafeResizableTexture(
         TextureHW(
           handle: handle,
@@ -177,7 +177,6 @@ public class VideoOutput: NSObject {
         return
       }
       that.registerTextureId()
-      textureUpdateCallback(textureId, CGSize(width: 0, height: 0))
     }
   }
 
