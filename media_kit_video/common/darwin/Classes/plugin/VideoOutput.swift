@@ -130,7 +130,6 @@ public class VideoOutput: NSObject {
     disposed = true
     
     disposeTextureId()
-    texture.dispose()
   }
 
   private func _init(allowHardwareAcceleration: Bool = true) {
