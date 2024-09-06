@@ -26,6 +26,7 @@ public class VideoOutput: NSObject {
 
   internal let handle: OpaquePointer
   private let enableHardwareAcceleration: Bool
+  private var usingHardwareAcceleration: Bool
   private let registry: FlutterTextureRegistry
   private let textureUpdateCallback: TextureUpdateCallback
   internal let worker: Worker = .init()
@@ -49,8 +50,7 @@ public class VideoOutput: NSObject {
     width = configuration.width
     height = configuration.height
     enableHardwareAcceleration = configuration.enableHardwareAcceleration
-    self.enableHardwareAcceleration = VideoOutput.isSimulator ? false : configuration.enableHardwareAcceleration
-    self.usingHardwareAcceleration = self.enableHardwareAcceleration
+    usingHardwareAcceleration = self.enableHardwareAcceleration
     self.registry = registry
     self.textureUpdateCallback = textureUpdateCallback
 
