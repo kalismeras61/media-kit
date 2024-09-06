@@ -82,8 +82,7 @@ public class VideoOutput: NSObject {
 
     texture.dispose()
     disposeTextureId()
-    currentWidth = 0
-    currentHeight = 0
+    currentSize = CGSize.zero
     _init(allowHardwareAcceleration: allowHardwareAcceleration)
 
     mpv_set_property_string(handle, "vid", vid)
