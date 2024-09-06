@@ -24,7 +24,9 @@ public class TextureSW: NSObject, FlutterTexture, ResizableTextureProtocol {
 
     super.init()
 
-    self.initMPV()
+    DispatchQueue.main.async {
+      self.initMPV()
+    }
   }
 
   deinit {
@@ -67,6 +69,7 @@ public class TextureSW: NSObject, FlutterTexture, ResizableTextureProtocol {
   }
 
   private func disposeMPV() {
+    mpv_render_context_set_update_callback(handle, nil, nil)
     mpv_render_context_set_update_callback(renderContext, nil, nil)
     mpv_render_context_free(renderContext)
   }
