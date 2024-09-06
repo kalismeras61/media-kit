@@ -172,8 +172,13 @@ public class VideoOutput: NSObject {
       )
     }
 
-      textureId = registry.register(texture)
+    DispatchQueue.main.sync { [weak self]() in
+      guard let that = self else {
+        return
+      }
+      that.registerTextureId()
       textureUpdateCallback(textureId, CGSize(width: 0, height: 0))
+    }
   }
 
   // Must be run on the main thread
