@@ -10,6 +10,7 @@ import AVKit
 import UIKit
 #endif
 
+
 #if os(iOS)
 @available(iOS 15.0, *)
 public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlaybackDelegate, AVPictureInPictureControllerDelegate {
@@ -54,7 +55,8 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
       return
     }
     
-    // Pause if app goes into background and PiP is not enabled.
+    // Pause if apps goes into background and PiP is not enabled.
+    // Otherwise audio and video will continue playing.
     mpv_command_string(handle, "cycle pause")
   }
   
@@ -81,9 +83,10 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     pipController = AVPictureInPictureController(contentSource: contentSource)
     pipController!.delegate = self
     
-    // Flutter uses keyWindow internally (Deprecated API in iOS 13+)
+    // keyWindow is deprecated but currently flutter uses it internally just as well.
+    // See Flutter issue: https://github.com/flutter/flutter/issues/104117
     let controller = UIApplication.shared.keyWindow?.rootViewController
-    // Add bufferDisplayLayer as an invisible layer to view to make PiP work.
+    // Add bufferDisplayLayer as an invisible layer to view to make PIP work.
     controller?.view.layer.addSublayer(bufferDisplayLayer)
     
     return true
@@ -152,8 +155,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
   }
   
-  // Remove 'override' as this method might not exist in the superclass.
-  public func dispose() {
+  public override func dispose() {
     super.dispose()
     disablePictureInPicture()
   }

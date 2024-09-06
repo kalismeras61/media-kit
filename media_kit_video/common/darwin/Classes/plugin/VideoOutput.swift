@@ -121,6 +121,19 @@ public class VideoOutput: NSObject {
     return false
   }
 
+  public func dispose() {
+    worker.enqueue {
+      self._dispose()
+    }
+  }
+  
+  private func _dispose() {
+    disposed = true
+    
+    disposeTextureId()
+    texture.dispose()
+  }
+
   private func _init(allowHardwareAcceleration: Bool = true) {
 
  NSLog(
