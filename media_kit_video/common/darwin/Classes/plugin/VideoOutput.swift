@@ -62,7 +62,7 @@ public class VideoOutput: NSObject {
   }
 
   public func switchToSoftwareRendering() {
-    switchRendering(allowHardwareAcceleration: false)
+    switchRendering(allowHardwareAcceleration: true)
   }
 
   public func switchToHardwareRendering() {
