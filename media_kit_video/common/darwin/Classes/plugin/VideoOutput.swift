@@ -123,8 +123,9 @@ public class VideoOutput: NSObject {
 
   private func _init(allowHardwareAcceleration: Bool = true) {
 
-  NSLog(
-      "VideoOutput: enableHardwareAcceleration: \(enableHardwareAcceleration) allowHardwareAcceleration: \(allowHardwareAcceleration)"
+ NSLog(
+      "VideoOutput: enableHardwareAcceleration: \(enableHardwareAcceleration) allowHardwareAcceleration: \(allowHardwareAcceleration)" 
+    )
 
     if VideoOutput.isSimulator {
       NSLog(
