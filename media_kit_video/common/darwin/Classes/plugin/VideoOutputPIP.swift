@@ -10,7 +10,6 @@ import AVKit
 import UIKit
 #endif
 
-
 @available(iOS 15.0, *)
 public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlaybackDelegate, AVPictureInPictureControllerDelegate {
     
@@ -36,6 +35,17 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         if pipController != nil, pipController!.isPictureInPictureActive {
             switchToSoftwareRendering()
         }
+
+    var isPaused: Int8 = 0
+    mpv_get_property(handle, "pause", MPV_FORMAT_FLAG, &isPaused)
+    
+    if isPaused == 1 {
+      return
+    }
+    
+    // Pause if apps goes into background and PiP is not enabled.
+    // Otherwise audio and video will continue playing.
+    mpv_command_string(handle, "cycle pause")
     }
     
     @objc private func appWillEnterForeground(_ notification: NSNotification) {
@@ -49,23 +59,37 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
 
     override public func enablePictureInPicture() -> Bool {
-        if pipController == nil {
-            bufferDisplayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
-            bufferDisplayLayer.opacity = 0
-            bufferDisplayLayer.videoGravity = .resizeAspect
-            
-            let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
-            pipController = AVPictureInPictureController(contentSource: contentSource)
-            pipController?.delegate = self
-            
-            UIApplication.shared.keyWindow?.rootViewController?.view.layer.addSublayer(bufferDisplayLayer)
-        }
-        return true
+        if pipController != nil {
+      return true
+          }
+          
+          do {
+            try AVAudioSession.sharedInstance().setCategory(.playback)
+          } catch {
+            NSLog("AVAudioSession set category failed")
+          }
+          
+          bufferDisplayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
+          bufferDisplayLayer.opacity = 0
+          bufferDisplayLayer.videoGravity = .resizeAspect
+          
+          let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
+          pipController = AVPictureInPictureController(contentSource: contentSource)
+          pipController!.delegate = self
+          
+          // keyWindow is deprecated but currently flutter uses it internally just as well.
+          // See Flutter issue: https://github.com/flutter/flutter/issues/104117
+          let controller = UIApplication.shared.keyWindow?.rootViewController
+          // Add bufferDisplayLayer as an invisible layer to view to make PIP work.
+          controller?.view.layer.addSublayer(bufferDisplayLayer)
+          
+          return true
     }
     
-    override public func disablePictureInPicture() {
-        bufferDisplayLayer.removeFromSuperlayer()
-        pipController = nil
+    override public func disableAutoPictureInPicture() {
+    if pipController != nil {
+      pipController?.canStartPictureInPictureAutomaticallyFromInline = false
+      }
     }
     
     override public func enterPictureInPicture() -> Bool {
@@ -77,24 +101,34 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
     
     override func _updateCallback() {
-        // Custom update callback for PiP
-        super._updateCallback()
+    super._updateCallback()
+    
+    if pipController != nil {
+      let pixelBuffer = texture.copyPixelBuffer()?.takeUnretainedValue()
+      if pixelBuffer == nil {
+        return
+      }
+      
+      var sampleBuffer: CMSampleBuffer?
+      
+      if videoFormat == nil || !CMVideoFormatDescriptionMatchesImageBuffer(videoFormat!, imageBuffer: pixelBuffer!)  {
+        videoFormat = nil
         
-        if pipController != nil, let pixelBuffer = texture.copyPixelBuffer()?.takeUnretainedValue() {
-            var sampleBuffer: CMSampleBuffer?
-            if videoFormat == nil || !CMVideoFormatDescriptionMatchesImageBuffer(videoFormat!, imageBuffer: pixelBuffer) {
-                videoFormat = nil
-                let err = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer, formatDescriptionOut: &videoFormat)
-                if err != noErr {
-                    NSLog("Error creating video format description: \(err)")
-                }
-            }
-            var timingInfo = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: CMTime(seconds: CACurrentMediaTime(), preferredTimescale: 100), decodeTimeStamp: .invalid)
-            let err = CMSampleBufferCreateForImageBuffer(allocator: nil, imageBuffer: pixelBuffer, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: videoFormat!, sampleTiming: &timingInfo, sampleBufferOut: &sampleBuffer)
-            if err == noErr {
-                bufferDisplayLayer.enqueue(sampleBuffer!)
-            }
+        let err = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: pixelBuffer!, formatDescriptionOut: &videoFormat)
+        if (err != noErr) {
+          NSLog("Error at CMVideoFormatDescriptionCreateForImageBuffer \(err)")
         }
+      }
+      
+      var sampleTimingInfo = CMSampleTimingInfo(duration: .invalid, presentationTimeStamp: CMTime(seconds: CACurrentMediaTime(), preferredTimescale: 100), decodeTimeStamp: .invalid)
+      
+      let err = CMSampleBufferCreateForImageBuffer(allocator: nil, imageBuffer: pixelBuffer!, dataReady: true, makeDataReadyCallback: nil, refcon: nil, formatDescription: videoFormat!, sampleTiming: &sampleTimingInfo, sampleBufferOut: &sampleBuffer)
+      if err == noErr {
+        bufferDisplayLayer.enqueue(sampleBuffer!)
+      } else {
+        NSLog("Error at CMSampleBufferCreateForImageBuffer \(err)")
+      }
+      }
     }
 
     // MARK: - AVPictureInPictureSampleBufferPlaybackDelegate
