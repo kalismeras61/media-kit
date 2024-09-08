@@ -107,7 +107,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     pipController = nil
   }
 
-    func setupAirPlayButton() {
+   public func setupAirPlayButton() {
         airPlayPickerView = AVRoutePickerView()
         
         // Customize the appearance of the AirPlay button
