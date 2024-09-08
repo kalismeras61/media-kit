@@ -109,13 +109,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
   }
 
   override public func setupAirPlayButton() -> Bool {
-    do {
-        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
-        try AVAudioSession.sharedInstance().setActive(true)
-    } catch {
-        NSLog("AVAudioSession set category failed")
-        return false // Return false if setting the audio session fails
-    }
+   
     
     airPlayPickerView = AVRoutePickerView()
     
