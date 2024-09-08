@@ -226,19 +226,7 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
     }
 }
 
-    DispatchQueue.main.async {
-        if #available(iOS 15.0, *) {
-            // Show AirPlay button (this will call setupAirPlayButton inside VideoOutputPIP)
-            if let videoOutput = self.videoOutputManager.getCurrentVideoOutput() as? VideoOutputPIP {
-                videoOutput.setupAirPlayButton()
-                result(true)
-            } else {
-                result(FlutterError(code: "AirPlayUnavailable", message: "AirPlay is not available on this platform", details: nil))
-            }
-        } else {
-            result(FlutterError(code: "UnsupportedOS", message: "AirPlay requires iOS 15.0 or newer", details: nil))
-        }
-    }
+    
 }
 
 
