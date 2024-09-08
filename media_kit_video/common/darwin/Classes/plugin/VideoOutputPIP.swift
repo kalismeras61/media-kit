@@ -20,10 +20,12 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
   private var notificationCenter: NotificationCenter {
     return .default
   }
+
+     private var airPlayPickerView: AVRoutePickerView? = nil
   
   override init(handle: Int64, configuration: VideoOutputConfiguration, registry: FlutterTextureRegistry, textureUpdateCallback: @escaping VideoOutput.TextureUpdateCallback) {
     super.init(handle: handle, configuration: configuration, registry: registry, textureUpdateCallback: textureUpdateCallback)
-    
+    setupAirPlayButton()
     notificationCenter.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
     notificationCenter.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
   }
