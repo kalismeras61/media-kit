@@ -181,7 +181,7 @@ class VideoController {
   }
 
   // airplay
-  Future<void> enableAirPlay() async {
+  Future<bool> enableAirPlay() async {
     final instance = await platform.future;
     return instance.enableAirPlay();
   }

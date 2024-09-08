@@ -322,14 +322,14 @@ class NativeVideoController extends PlatformVideoController {
   }
 
   @override
-  Future<void> enableAirPlay() async {
+  Future<bool> enableAirPlay() async {
     if (!Platform.isIOS) {
-      return;
+      return false;
     }
 
     final handle = await player.handle;
     try {
-      await _channel.invokeMethod(
+      return await _channel.invokeMethod(
         'VideoOutputManager.ShowAirPlayButton',
         {
           'handle': handle.toString(),
@@ -337,6 +337,7 @@ class NativeVideoController extends PlatformVideoController {
       );
     } catch (e) {
       debugPrint('Failed to show AirPlay button: $e');
+      return false;
     }
   }
 
