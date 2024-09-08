@@ -110,7 +110,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
 
   override public func setupAirPlayButton() -> Bool {
    
-    
+      NSLog("AirPlay button setup 1") 
     airPlayPickerView = AVRoutePickerView()
     
     // Customize the appearance of the AirPlay button
@@ -118,14 +118,15 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     airPlayPickerView?.tintColor = .white
     
     guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
-        return false // Return false if root view controller is unavailable
+        NSLog("AirPlay button setup 2 no luck") 
+        return false 
     }
     
     // Add AirPlayPickerView to the view hierarchy
     if let airPlayPicker = airPlayPickerView {
         airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
         controller.view.addSubview(airPlayPicker)
-        
+          NSLog("AirPlay button setup 3") 
         // Set constraints for positioning the button
         NSLayoutConstraint.activate([
             airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
