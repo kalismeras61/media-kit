@@ -84,7 +84,6 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     bufferDisplayLayer.opacity = 0
     bufferDisplayLayer.videoGravity = .resizeAspect
     bufferDisplayLayer.contentsScale = UIScreen.main.scale 
-    bufferDisplayLayer.maximumFrameDuration = CMTime(value: 1, timescale: 30)
     
     let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
     pipController = AVPictureInPictureController(contentSource: contentSource)
