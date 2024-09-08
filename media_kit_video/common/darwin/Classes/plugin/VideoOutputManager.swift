@@ -126,6 +126,10 @@ public class VideoOutputManager: NSObject {
     return videoOutput!.enterPictureInPicture()
   }
 
+  public func getCurrentVideoOutput() -> VideoOutput? {
+    return self.videoOutputs.values.first
+  }
+
   public func refreshPlaybackState(
     handle: Int64
   ) {
