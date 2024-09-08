@@ -108,40 +108,43 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     pipController = nil
   }
 
-    override public func  setupAirPlayButton()  -> Bool { 
-
-          do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
-            try AVAudioSession.sharedInstance().setActive(true)
-          } catch {
-            NSLog("AVAudioSession set category failed")
-          }
-    
-        airPlayPickerView = AVRoutePickerView()
-        
-        // Customize the appearance of the AirPlay button
-        airPlayPickerView?.activeTintColor = .systemBlue
-        airPlayPickerView?.tintColor = .white
-        
-        guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
-            return
-        }
-        
-        // Add AirPlayPickerView to the view hierarchy
-        if let airPlayPicker = airPlayPickerView {
-            airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
-            controller.view.addSubview(airPlayPicker)
-            
-            // Set constraints for positioning the button
-            NSLayoutConstraint.activate([
-                airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
-                airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
-                airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
-                airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
-            ])
-        }
+  override public func setupAirPlayButton() -> Bool {
+    do {
+        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+        try AVAudioSession.sharedInstance().setActive(true)
+    } catch {
+        NSLog("AVAudioSession set category failed")
+        return false // Return false if setting the audio session fails
     }
-  
+    
+    airPlayPickerView = AVRoutePickerView()
+    
+    // Customize the appearance of the AirPlay button
+    airPlayPickerView?.activeTintColor = .systemBlue
+    airPlayPickerView?.tintColor = .white
+    
+    guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
+        return false // Return false if root view controller is unavailable
+    }
+    
+    // Add AirPlayPickerView to the view hierarchy
+    if let airPlayPicker = airPlayPickerView {
+        airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
+        controller.view.addSubview(airPlayPicker)
+        
+        // Set constraints for positioning the button
+        NSLayoutConstraint.activate([
+            airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
+            airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
+            airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
+            airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        return true // Return true if everything is successful
+    }
+    
+    return false // Return false if AirPlayPickerView cannot be added
+}
+
   override public func enableAutoPictureInPicture() -> Bool {
     if enablePictureInPicture() {
       pipController?.canStartPictureInPictureAutomaticallyFromInline = true
