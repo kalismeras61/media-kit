@@ -38,16 +38,21 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
   }
   
-  @objc private func appWillResignActive(_ notification: NSNotification) {
+@objc private func appWillResignActive(_ notification: NSNotification) {
     if pipController == nil {
       return
     }
-    
+
+    // Apply hardware rendering only on iPad
+    if UIDevice.current.userInterfaceIdiom == .pad {
+        return
+    }
+
     if pipController!.canStartPictureInPictureAutomaticallyFromInline || pipController!.isPictureInPictureActive {
       switchToSoftwareRendering()
       return
     }
-    
+
     var isPaused: Int8 = 0
     mpv_get_property(handle, "pause", MPV_FORMAT_FLAG, &isPaused)
     
@@ -56,9 +61,9 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
     
     // Pause if apps goes into background and PiP is not enabled.
-    // Otherwise audio and video will continue playing.
     mpv_command_string(handle, "cycle pause")
   }
+
   
   override public func refreshPlaybackState() {
     pipController?.invalidatePlaybackState()
@@ -78,6 +83,8 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     bufferDisplayLayer.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
     bufferDisplayLayer.opacity = 0
     bufferDisplayLayer.videoGravity = .resizeAspect
+    bufferDisplayLayer.contentsScale = UIScreen.main.scale 
+    bufferDisplayLayer.maximumFrameDuration = CMTime(value: 1, timescale: 30)
     
     let contentSource = AVPictureInPictureController.ContentSource(sampleBufferDisplayLayer: bufferDisplayLayer, playbackDelegate: self)
     pipController = AVPictureInPictureController(contentSource: contentSource)
