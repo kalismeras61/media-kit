@@ -25,7 +25,6 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
   
   override init(handle: Int64, configuration: VideoOutputConfiguration, registry: FlutterTextureRegistry, textureUpdateCallback: @escaping VideoOutput.TextureUpdateCallback) {
     super.init(handle: handle, configuration: configuration, registry: registry, textureUpdateCallback: textureUpdateCallback)
-    setupAirPlayButton()
     notificationCenter.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
     notificationCenter.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
   }
@@ -109,7 +108,15 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     pipController = nil
   }
 
-   public func setupAirPlayButton() {
+      public func setupAirPlayButton() {
+
+          do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+            try AVAudioSession.sharedInstance().setActive(true)
+          } catch {
+            NSLog("AVAudioSession set category failed")
+          }
+    
         airPlayPickerView = AVRoutePickerView()
         
         // Customize the appearance of the AirPlay button

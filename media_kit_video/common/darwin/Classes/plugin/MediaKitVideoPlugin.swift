@@ -76,7 +76,7 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
     case "VideoOutputManager.RefreshPlaybackState":
       handleRefreshPlaybackStateMethodCall(call.arguments, result)
     case "VideoOutputManager.ShowAirPlayButton":
-      handleShowAirPlayButtonMethodCall(result: result)
+      handleShowAirPlayButtonMethodCall(call.arguments, result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -211,19 +211,20 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
     result(ret)
   }
 
-  private func handleShowAirPlayButtonMethodCall(result: @escaping FlutterResult) {
-    DispatchQueue.main.async {
-        if #available(iOS 15.0, *) {
-            if let videoOutput = self.videoOutputManager.getCurrentVideoOutput() as? VideoOutputPIP {
-                videoOutput.setupAirPlayButton()
-                result(true)
-            } else {
-                result(FlutterError(code: "AirPlayUnavailable", message: "AirPlay is not available on this platform", details: nil))
-            }
-        } else {
-            result(FlutterError(code: "UnsupportedOS", message: "AirPlay requires iOS 15.0 or newer", details: nil))
-        }
-    }
+  private func handleShowAirPlayButtonMethodCall(
+    _ arguments: Any?,
+    _ result: FlutterResult) {
+    let args = arguments as? [String: Any]
+    let handleStr = args?["handle"] as! String
+    let handle: Int64? = Int64(handleStr)
+
+    assert(handle != nil, "handle must be an Int64")
+
+    let ret = videoOutputManager.setupAirPlayButton(
+      handle: handle!
+    )
+
+    result(ret)
   }
 
   private func handleRefreshPlaybackStateMethodCall(

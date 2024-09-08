@@ -126,8 +126,16 @@ public class VideoOutputManager: NSObject {
     return videoOutput!.enterPictureInPicture()
   }
 
-  public func getCurrentVideoOutput() -> VideoOutput? {
-    return self.videoOutputs.values.first
+
+  public func setupAirPlayButton(
+    handle: Int64
+  ) -> Bool {
+    let videoOutput = self.videoOutputs[handle]
+    if videoOutput == nil {
+      return false
+    }
+
+    return videoOutput!.enableAirPlay()
   }
 
   public func refreshPlaybackState(

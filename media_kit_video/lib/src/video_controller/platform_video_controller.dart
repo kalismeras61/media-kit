@@ -88,8 +88,8 @@ abstract class PlatformVideoController {
   }
 
   /// Enable AirPlay.
-  Future<void> enableAirPlay() async {
-    return;
+  Future<bool> enableAirPlay() async {
+    return false;
   }
 
   /// A [Future] that completes when the first video frame has been rendered.
