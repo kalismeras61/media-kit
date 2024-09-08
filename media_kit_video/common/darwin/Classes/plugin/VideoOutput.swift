@@ -120,6 +120,10 @@ public class VideoOutput: NSObject {
     return false
   }
 
+  public func enableAirPlay() -> Bool {
+    return false
+  } 
+
   public func dispose() {
     worker.enqueue {
       self._dispose()
