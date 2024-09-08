@@ -180,6 +180,12 @@ class VideoController {
     return instance.enterPictureInPicture();
   }
 
+  // airplay
+  Future<void> enableAirPlay() async {
+    final instance = await platform.future;
+    return instance.enableAirPlay();
+  }
+
   /// Sets the required size of the video output.
   /// This may yield substantial performance improvements if a small [width] & [height] is specified.
   ///

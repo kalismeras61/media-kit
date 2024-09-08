@@ -229,6 +229,7 @@ class NativeVideoController extends PlatformVideoController {
 
   /// Enable Picture in Picture.
   /// Returns true if this is supported on current platofrm.
+  @override
   Future<bool> enablePictureInPicture() async {
     if (!Platform.isIOS) {
       return false;
@@ -244,6 +245,7 @@ class NativeVideoController extends PlatformVideoController {
   }
 
   /// Disable Picture in Picture.
+  @override
   Future<void> disablePictureInPicture() async {
     if (!Platform.isIOS) {
       return;
@@ -317,6 +319,25 @@ class NativeVideoController extends PlatformVideoController {
         'handle': handle.toString(),
       },
     );
+  }
+
+  @override
+  Future<void> enableAirPlay() async {
+    if (!Platform.isIOS) {
+      return;
+    }
+
+    final handle = await player.handle;
+    try {
+      await _channel.invokeMethod(
+        'VideoOutputManager.ShowAirPlayButton',
+        {
+          'handle': handle.toString(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Failed to show AirPlay button: $e');
+    }
   }
 
   /// Currently created [NativeVideoController]s.

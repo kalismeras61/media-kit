@@ -75,7 +75,8 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
     
     do {
-      try AVAudioSession.sharedInstance().setCategory(.playback)
+      try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
+      try AVAudioSession.sharedInstance().setActive(true)
     } catch {
       NSLog("AVAudioSession set category failed")
     }
@@ -105,6 +106,32 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     
     pipController = nil
   }
+
+   private func setupAirPlayButton() {
+        airPlayPickerView = AVRoutePickerView()
+        
+        // Customize the appearance of the AirPlay button
+        airPlayPickerView?.activeTintColor = .systemBlue
+        airPlayPickerView?.tintColor = .white
+        
+        guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
+            return
+        }
+        
+        // Add AirPlayPickerView to the view hierarchy
+        if let airPlayPicker = airPlayPickerView {
+            airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
+            controller.view.addSubview(airPlayPicker)
+            
+            // Set constraints for positioning the button
+            NSLayoutConstraint.activate([
+                airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
+                airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
+                airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
+                airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
+            ])
+        }
+    }
   
   override public func enableAutoPictureInPicture() -> Bool {
     if enablePictureInPicture() {
@@ -164,6 +191,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
   public override func dispose() {
     super.dispose()
     disablePictureInPicture()
+    airPlayPickerView?.removeFromSuperview() 
   }
   
   public func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController, setPlaying playing: Bool) {

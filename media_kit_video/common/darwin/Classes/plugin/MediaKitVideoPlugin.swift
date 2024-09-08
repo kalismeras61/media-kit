@@ -75,6 +75,8 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
       handleEnterPictureInPictureMethodCall(call.arguments, result)
     case "VideoOutputManager.RefreshPlaybackState":
       handleRefreshPlaybackStateMethodCall(call.arguments, result)
+    case "VideoOutputManager.ShowAirPlayButton":
+      handleShowAirPlayButtonMethodCall(result: result)
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -207,6 +209,19 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
 
     result(ret)
   }
+
+  private func handleShowAirPlayButtonMethodCall(result: FlutterResult) {
+    DispatchQueue.main.async {
+        // Show AirPlay button (this will call setupAirPlayButton inside VideoOutputPIP)
+        // This assumes the current video output has PIP enabled and is using VideoOutputPIP
+        if let videoOutput = self.videoOutputManager.getCurrentVideoOutput() as? VideoOutputPIP {
+            videoOutput.setupAirPlayButton()
+            result(true)
+        } else {
+            result(FlutterError(code: "AirPlayUnavailable", message: "AirPlay is not available on this platform", details: nil))
+        }
+    }
+}
 
   private func handleRefreshPlaybackStateMethodCall(
     _ arguments: Any?,

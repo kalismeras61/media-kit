@@ -87,6 +87,11 @@ abstract class PlatformVideoController {
     return false;
   }
 
+  /// Enable AirPlay.
+  Future<void> enableAirPlay() async {
+    return;
+  }
+
   /// A [Future] that completes when the first video frame has been rendered.
   Future<void> get waitUntilFirstFrameRendered =>
       waitUntilFirstFrameRenderedCompleter.future;
