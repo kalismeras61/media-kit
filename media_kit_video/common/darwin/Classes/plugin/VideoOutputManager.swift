@@ -135,7 +135,7 @@ public class VideoOutputManager: NSObject {
       return false
     }
 
-    return videoOutput!.enableAirPlay()
+    return videoOutput!.setupAirPlayButton()
   }
 
   public func refreshPlaybackState(

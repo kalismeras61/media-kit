@@ -120,7 +120,7 @@ public class VideoOutput: NSObject {
     return false
   }
 
-  public func enableAirPlay() -> Bool {
+  public func setupAirPlayButton() -> Bool {
     return false
   } 
 

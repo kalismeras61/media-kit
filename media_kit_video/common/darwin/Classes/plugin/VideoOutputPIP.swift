@@ -108,7 +108,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     pipController = nil
   }
 
-      public func setupAirPlayButton() {
+    override public func  setupAirPlayButton()  -> Bool { 
 
           do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
