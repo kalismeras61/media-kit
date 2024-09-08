@@ -226,9 +226,6 @@ public class MediaKitVideoPlugin: NSObject, FlutterPlugin {
     }
 }
 
-    
-}
-
 
   private func handleRefreshPlaybackStateMethodCall(
     _ arguments: Any?,
