@@ -120,9 +120,9 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
               buttonView = airPlayPickerView
           } else {
               // If you still support previous iOS versions you can use MPVolumeView
-              let airplayButton = MPVolumeView(frame: buttonFrame) // add "import MediaPlayer" to file if needed
-              airPlayPickerView?.showsVolumeSlider = false
-              buttonView = airplayButton
+               let tempView = MPVolumeView(frame: .init(x: 0.0, y: 0.0, width: 44.0, height: 44.0))
+               tempView.showsVolumeSlider = false
+              buttonView = tempView
           }
 
 
