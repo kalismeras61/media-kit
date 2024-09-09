@@ -104,33 +104,32 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
 
     // Setting up the AirPlay button
-    override public func setupAirPlayButton() -> Bool {
-         var buttonView: UIView? = nil
-         let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
+     override public func setupAirPlayButton() -> Bool {
+        var buttonView: UIView? = nil
+        let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
         NSLog("AirPlay button setup")
          
-         // It's highly recommended to use the AVRoutePickerView in order to avoid AirPlay issues after iOS 11.
-          if #available(iOS 11.0, *) {
+        // Using AVRoutePickerView for iOS 11+
+        if #available(iOS 11.0, *) {
             NSLog("AirPlay button setup iOS 11+")
-              airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
-                    // Customize the appearance of the AirPlay button
-              airPlayPickerView?.activeTintColor = .systemBlue
-              airPlayPickerView?.tintColor = .white
-              
-              buttonView = airPlayPickerView
-          } else {
-              // If you still support previous iOS versions you can use MPVolumeView
-               let tempView = MPVolumeView(frame: .init(x: 0.0, y: 0.0, width: 44.0, height: 44.0))
-               tempView.showsVolumeSlider = false
-              buttonView = tempView
-          }
+            airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
+            airPlayPickerView?.activeTintColor = .systemBlue
+            airPlayPickerView?.tintColor = .white
+            buttonView = airPlayPickerView
+        } else {
+            // For older iOS versions, fallback to MPVolumeView
+            let tempView = MPVolumeView(frame: buttonFrame)
+            tempView.showsVolumeSlider = false
+            buttonView = tempView
+        }
 
-
-        // Setting up the delegate for additional event handling (optional)
+        // Set the delegate for additional event handling (optional)
         airPlayDelegate = AirPlayDelegate()
         airPlayPickerView?.delegate = airPlayDelegate
         
-        guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
+        // Use UIApplication.shared.windows to get the key window correctly
+        guard let controller = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+            NSLog("AirPlay button setup failed - rootViewController not found")
             return false
         }
     
