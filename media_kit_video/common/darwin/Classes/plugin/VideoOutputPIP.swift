@@ -5,7 +5,8 @@ import FlutterMacOS
 #endif
 
 import AVKit
-
+import MediaPlayer
+import Foundation
 #if os(iOS)
 import UIKit
 #endif
@@ -106,30 +107,45 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     override public func setupAirPlayButton() -> Bool {
          var buttonView: UIView? = nil
          let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
-
+        NSLog("AirPlay button setup")
          
          // It's highly recommended to use the AVRoutePickerView in order to avoid AirPlay issues after iOS 11.
           if #available(iOS 11.0, *) {
+            NSLog("AirPlay button setup iOS 11+")
               airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
-              airPlayPickerView.activeTintColor = UIColor.blue
-              airPlayPickerView.tintColor = UIColor.gray
-              buttonView = airplayButton
+                    // Customize the appearance of the AirPlay button
+              airPlayPickerView?.activeTintColor = .systemBlue
+              airPlayPickerView?.tintColor = .white
+              
+              buttonView = airPlayPickerView
           } else {
               // If you still support previous iOS versions you can use MPVolumeView
               let airplayButton = MPVolumeView(frame: buttonFrame) // add "import MediaPlayer" to file if needed
-              airplayButton.showsVolumeSlider = false
+              airPlayPickerView.showsVolumeSlider = false
               buttonView = airplayButton
           }
+
 
         // Setting up the delegate for additional event handling (optional)
         airPlayDelegate = AirPlayDelegate()
         airPlayPickerView?.delegate = airPlayDelegate
         
- 
+        guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
+            return false
+        }
+    
         // Add AirPlayPickerView to the view hierarchy
         if let airPlayPicker = airPlayPickerView {
-           let buttonItem = UIBarButtonItem(customView: buttonView!)
-           self.navigationItem.setRightBarButton(buttonItem, animated: true)
+            airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
+            controller.view.addSubview(airPlayPicker)
+            NSLog("AirPlay button added") // Debugging purposes 
+
+            NSLayoutConstraint.activate([
+                airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
+                airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
+                airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
+                airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
+            ])
             return true
         }
     
