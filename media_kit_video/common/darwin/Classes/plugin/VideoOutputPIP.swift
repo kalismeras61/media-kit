@@ -104,31 +104,32 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
 
     // Setting up the AirPlay button
     override public func setupAirPlayButton() -> Bool {
-        airPlayPickerView = AVRoutePickerView()
+         var buttonView: UIView? = nil
+         let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
 
-        // Customize the appearance of the AirPlay button
-        airPlayPickerView?.activeTintColor = .systemBlue
-        airPlayPickerView?.tintColor = .white
-        
+         
+         // It's highly recommended to use the AVRoutePickerView in order to avoid AirPlay issues after iOS 11.
+          if #available(iOS 11.0, *) {
+              airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
+              airPlayPickerView.activeTintColor = UIColor.blue
+              airPlayPickerView.tintColor = UIColor.gray
+              buttonView = airplayButton
+          } else {
+              // If you still support previous iOS versions you can use MPVolumeView
+              let airplayButton = MPVolumeView(frame: buttonFrame) // add "import MediaPlayer" to file if needed
+              airplayButton.showsVolumeSlider = false
+              buttonView = airplayButton
+          }
+
         // Setting up the delegate for additional event handling (optional)
         airPlayDelegate = AirPlayDelegate()
         airPlayPickerView?.delegate = airPlayDelegate
         
-        guard let controller = UIApplication.shared.keyWindow?.rootViewController else {
-            return false
-        }
-    
+ 
         // Add AirPlayPickerView to the view hierarchy
         if let airPlayPicker = airPlayPickerView {
-            airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
-            controller.view.addSubview(airPlayPicker)
-
-            NSLayoutConstraint.activate([
-                airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
-                airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
-                airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
-                airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
-            ])
+           let buttonItem = UIBarButtonItem(customView: buttonView!)
+           self.navigationItem.setRightBarButton(buttonItem, animated: true)
             return true
         }
     
