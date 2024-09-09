@@ -104,52 +104,54 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     }
 
     // Setting up the AirPlay button
-     override public func setupAirPlayButton() -> Bool {
-        var buttonView: UIView? = nil
-        let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
-        NSLog("AirPlay button setup")
-         
-        // Using AVRoutePickerView for iOS 11+
-        if #available(iOS 11.0, *) {
-            NSLog("AirPlay button setup iOS 11+")
-            airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
-            airPlayPickerView?.activeTintColor = .systemBlue
-            airPlayPickerView?.tintColor = .white
-            buttonView = airPlayPickerView
-        } else {
-            // For older iOS versions, fallback to MPVolumeView
-            let tempView = MPVolumeView(frame: buttonFrame)
-            tempView.showsVolumeSlider = false
-            buttonView = tempView
-        }
+     // Setting up the AirPlay button
+      override public func setupAirPlayButton() -> Bool {
+          DispatchQueue.main.async {
+              var buttonView: UIView? = nil
+              let buttonFrame = CGRect(x: 0, y: 0, width: 44, height: 44)
+              NSLog("AirPlay button setup")
+              
+              // Using AVRoutePickerView for iOS 11+
+              if #available(iOS 11.0, *) {
+                  NSLog("AirPlay button setup iOS 11+")
+                  self.airPlayPickerView = AVRoutePickerView(frame: buttonFrame)
+                  self.airPlayPickerView?.activeTintColor = .systemBlue
+                  self.airPlayPickerView?.tintColor = .white
+                  buttonView = self.airPlayPickerView
+              } else {
+                  // For older iOS versions, fallback to MPVolumeView
+                  let tempView = MPVolumeView(frame: buttonFrame)
+                  tempView.showsVolumeSlider = false
+                  buttonView = tempView
+              }
 
-        // Set the delegate for additional event handling (optional)
-        airPlayDelegate = AirPlayDelegate()
-        airPlayPickerView?.delegate = airPlayDelegate
-        
-        // Use UIApplication.shared.windows to get the key window correctly
-        guard let controller = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
-            NSLog("AirPlay button setup failed - rootViewController not found")
-            return false
-        }
-    
-        // Add AirPlayPickerView to the view hierarchy
-        if let airPlayPicker = airPlayPickerView {
-            airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
-            controller.view.addSubview(airPlayPicker)
-            NSLog("AirPlay button added") // Debugging purposes 
+              // Set the delegate for additional event handling (optional)
+              self.airPlayDelegate = AirPlayDelegate()
+              self.airPlayPickerView?.delegate = self.airPlayDelegate
+              
+              // Use UIApplication.shared.windows to get the key window correctly
+              guard let controller = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+                  NSLog("AirPlay button setup failed - rootViewController not found")
+                  return
+              }
 
-            NSLayoutConstraint.activate([
-                airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
-                airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
-                airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
-                airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
-            ])
-            return true
-        }
-    
-        return false
-    }
+              // Add AirPlayPickerView to the view hierarchy
+              if let airPlayPicker = self.airPlayPickerView {
+                  airPlayPicker.translatesAutoresizingMaskIntoConstraints = false
+                  controller.view.addSubview(airPlayPicker)
+                  NSLog("AirPlay button added") // Debugging purposes 
+
+                  NSLayoutConstraint.activate([
+                      airPlayPicker.trailingAnchor.constraint(equalTo: controller.view.trailingAnchor, constant: -16),
+                      airPlayPicker.bottomAnchor.constraint(equalTo: controller.view.bottomAnchor, constant: -50),
+                      airPlayPicker.widthAnchor.constraint(equalToConstant: 40),
+                      airPlayPicker.heightAnchor.constraint(equalToConstant: 40)
+                  ])
+              }
+          }
+          return true
+      }
+
     
     // New delegate to handle AVRoutePickerView events
     class AirPlayDelegate: NSObject, AVRoutePickerViewDelegate {
