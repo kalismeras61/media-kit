@@ -75,8 +75,8 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         }
     
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback, options: [.allowAirPlay])
-            try AVAudioSession.sharedInstance().setActive(true)
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
+            try? AVAudioSession.sharedInstance().setActive(true)
         } catch {
             NSLog("AVAudioSession set category failed")
         }
