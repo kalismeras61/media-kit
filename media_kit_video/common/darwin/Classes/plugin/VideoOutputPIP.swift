@@ -50,9 +50,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         }
 
         if pipController!.canStartPictureInPictureAutomaticallyFromInline || pipController!.isPictureInPictureActive {
-             worker.enqueue {
-                 self.switchToSoftwareRendering()
-              }
+            self.switchToSoftwareRendering()
             return
         }
 
