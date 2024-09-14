@@ -38,19 +38,17 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
   
     @objc private func appWillEnterForeground(_ notification: NSNotification) {
         NSLog("appWillEnterForeground")
-        worker.enqueue {
-            self.switchToHardwareRendering()
+        if let pipController = self.pipController, pipController.isPictureInPictureActive {
+            // PiP is active, continue using software rendering
+            return
         }
+       self.switchToHardwareRendering()
     }
   
     @objc private func appWillResignActive(_ notification: NSNotification) {
         NSLog("appWillResignActive")
-        if pipController == nil {
-            return
-        }
-
-        if pipController!.canStartPictureInPictureAutomaticallyFromInline || pipController!.isPictureInPictureActive {
-            self.switchToSoftwareRendering()
+       if let pipController = self.pipController, pipController.isPictureInPictureActive {
+            // PiP is active, continue using software rendering
             return
         }
 
@@ -166,6 +164,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     override public func enableAutoPictureInPicture() -> Bool {
         if enablePictureInPicture() {
             pipController?.canStartPictureInPictureAutomaticallyFromInline = true
+            self.switchToSoftwareRendering()
             return true
         }
         return false
@@ -174,6 +173,7 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     override public func disableAutoPictureInPicture() {
         if pipController != nil {
             pipController?.canStartPictureInPictureAutomaticallyFromInline = false
+            self.switchToHardwareRendering()
         }
     }
 

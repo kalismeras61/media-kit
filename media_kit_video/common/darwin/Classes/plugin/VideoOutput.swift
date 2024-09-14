@@ -83,6 +83,8 @@ public class VideoOutput: NSObject {
   
     disposeTextureId()
     currentSize = CGSize.zero
+
+    NSLog("switchRendering 2: \(allowHardwareAcceleration)") 
     _init(allowHardwareAcceleration: allowHardwareAcceleration)
 
     mpv_set_property_string(handle, "vid", vid)

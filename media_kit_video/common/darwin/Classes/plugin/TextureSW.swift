@@ -24,7 +24,9 @@ public class TextureSW: NSObject, FlutterTexture, ResizableTextureProtocol {
 
     super.init()
 
-    self.initMPV()
+    DispatchQueue.main.async {
+      self.initMPV()
+    }
   }
 
   deinit {
