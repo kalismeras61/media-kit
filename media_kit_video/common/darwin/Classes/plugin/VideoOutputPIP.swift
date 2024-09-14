@@ -29,19 +29,33 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         super.init(handle: handle, configuration: configuration, registry: registry, textureUpdateCallback: textureUpdateCallback)
         notificationCenter.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
         notificationCenter.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
+        // app did enter background
+        notificationCenter.addObserver(self, selector: #selector(appDidEnterBackground(_:)), name: UIApplication.appDidEnterBackgroundNotification, object: nil)
     }
   
     deinit {
         notificationCenter.removeObserver(self)
     }
+
+
+
+     @objc private func appDidEnterBackground(_ notification: NSNotification) {
+        NSLog("appDidEnterBackground")
+        worker.enqueue {
+            self.switchToSoftwareRendering()
+        }
+    }
+    
   
     @objc private func appWillEnterForeground(_ notification: NSNotification) {
+        NSLog("appWillEnterForeground")
         worker.enqueue {
             self.switchToHardwareRendering()
         }
     }
   
     @objc private func appWillResignActive(_ notification: NSNotification) {
+        NSLog("appWillResignActive")
         if pipController == nil {
             return
         }

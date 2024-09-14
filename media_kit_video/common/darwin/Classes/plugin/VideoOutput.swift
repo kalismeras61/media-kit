@@ -50,7 +50,7 @@ public class VideoOutput: NSObject {
     width = configuration.width
     height = configuration.height
     enableHardwareAcceleration = configuration.enableHardwareAcceleration
-    usingHardwareAcceleration = self.enableHardwareAcceleration
+    usingHardwareAcceleration = onfiguration.enableHardwareAcceleration
     self.registry = registry
     self.textureUpdateCallback = textureUpdateCallback
 
@@ -62,7 +62,7 @@ public class VideoOutput: NSObject {
   }
 
   public func switchToSoftwareRendering() {
-    switchRendering(allowHardwareAcceleration: true)
+    switchRendering(allowHardwareAcceleration: false)
   }
 
   public func switchToHardwareRendering() {
@@ -138,7 +138,7 @@ public class VideoOutput: NSObject {
 
   private func _init(allowHardwareAcceleration: Bool = true) {
 
- NSLog(
+   NSLog(
       "VideoOutput: enableHardwareAcceleration: \(enableHardwareAcceleration) allowHardwareAcceleration: \(allowHardwareAcceleration)" 
     )
 
@@ -148,7 +148,7 @@ public class VideoOutput: NSObject {
       )
     }
 
-   if enableHardwareAcceleration {
+   if enableHardwareAcceleration && allowHardwareAcceleration {
       texture = SafeResizableTexture(
         TextureHW(
           handle: handle,
