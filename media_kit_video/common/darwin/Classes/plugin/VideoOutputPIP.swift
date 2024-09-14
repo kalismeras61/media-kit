@@ -164,7 +164,9 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
     override public func enableAutoPictureInPicture() -> Bool {
         if enablePictureInPicture() {
             pipController?.canStartPictureInPictureAutomaticallyFromInline = true
-            self.switchToSoftwareRendering()
+            if pipController?.isPictureInPictureActive == true {
+               self.switchToSoftwareRendering()
+            }
             return true
         }
         return false
