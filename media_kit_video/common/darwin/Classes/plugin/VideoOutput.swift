@@ -50,7 +50,7 @@ public class VideoOutput: NSObject {
     width = configuration.width
     height = configuration.height
     enableHardwareAcceleration = configuration.enableHardwareAcceleration
-    usingHardwareAcceleration = onfiguration.enableHardwareAcceleration
+    usingHardwareAcceleration = configuration.enableHardwareAcceleration
     self.registry = registry
     self.textureUpdateCallback = textureUpdateCallback
 
