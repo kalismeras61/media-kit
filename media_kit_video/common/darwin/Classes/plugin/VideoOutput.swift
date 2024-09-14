@@ -82,6 +82,7 @@ public class VideoOutput: NSObject {
 
   
     disposeTextureId()
+    texture = nil
     currentSize = CGSize.zero
 
     NSLog("switchRendering 2: \(allowHardwareAcceleration)") 
