@@ -29,21 +29,10 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
         super.init(handle: handle, configuration: configuration, registry: registry, textureUpdateCallback: textureUpdateCallback)
         notificationCenter.addObserver(self, selector: #selector(appWillResignActive(_:)), name: UIApplication.willResignActiveNotification, object: nil)
         notificationCenter.addObserver(self, selector: #selector(appWillEnterForeground(_:)), name: UIApplication.willEnterForegroundNotification, object: nil)
-        // app did enter background
-        notificationCenter.addObserver(self, selector: #selector(appDidEnterBackground(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
   
     deinit {
         notificationCenter.removeObserver(self)
-    }
-
-
-
-     @objc private func appDidEnterBackground(_ notification: NSNotification) {
-        NSLog("appDidEnterBackground")
-        worker.enqueue {
-            self.switchToSoftwareRendering()
-        }
     }
     
   
@@ -60,12 +49,8 @@ public class VideoOutputPIP: VideoOutput, AVPictureInPictureSampleBufferPlayback
             return
         }
 
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            return
-        }
-
         if pipController!.canStartPictureInPictureAutomaticallyFromInline || pipController!.isPictureInPictureActive {
-            switchToSoftwareRendering()
+            switchToHardwareRendering()
             return
         }
 

@@ -49,8 +49,8 @@ public class VideoOutput: NSObject {
     self.handle = handle!
     width = configuration.width
     height = configuration.height
-    enableHardwareAcceleration = configuration.enableHardwareAcceleration
-    usingHardwareAcceleration = configuration.enableHardwareAcceleration
+    self.enableHardwareAcceleration = VideoOutput.isSimulator ? false : configuration.enableHardwareAcceleration
+    self.usingHardwareAcceleration = self.enableHardwareAcceleration
     self.registry = registry
     self.textureUpdateCallback = textureUpdateCallback
 
