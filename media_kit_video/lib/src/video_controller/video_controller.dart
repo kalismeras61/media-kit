@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:media_kit/media_kit.dart';
 
 import 'package:media_kit_video/src/video_controller/platform_video_controller.dart';
@@ -69,6 +70,8 @@ class VideoController {
   /// [Rect] of the video output, received from the native implementation.
   final ValueNotifier<Rect?> rect = ValueNotifier<Rect?>(null);
 
+  bool _isPictureInPictureAvailable = false;
+
   /// {@macro video_controller}
   VideoController(
     this.player, {
@@ -78,6 +81,10 @@ class VideoController {
     player.platform?.isVideoControllerAttached = true;
 
     () async {
+      final completer = Completer();
+      WidgetsBinding.instance.addPostFrameCallback((_) => completer.complete());
+      await completer.future;
+
       try {
         if (NativeVideoController.supported) {
           final result = await NativeVideoController.create(
@@ -117,12 +124,17 @@ class VideoController {
             controller.id.removeListener(fn0);
             controller.rect.removeListener(fn1);
           });
+
+          _isPictureInPictureAvailable =
+              await controller.isPictureInPictureAvailable();
         } else {
           platform.completeError(
             UnimplementedError(
               '[VideoController] is unavailable for this platform.',
             ),
           );
+
+          _isPictureInPictureAvailable = false;
         }
       } catch (exception, stacktrace) {
         platform.completeError(exception);
@@ -134,6 +146,49 @@ class VideoController {
         player.platform?.videoControllerCompleter.complete();
       }
     }();
+  }
+
+  /// Checks whether Picture in Picture is available on current platform.
+  bool isPictureInPictureAvailable() {
+    return _isPictureInPictureAvailable;
+  }
+
+  /// Enable Picture in Picture.
+  /// Returns true if this is supported on current platofrm.
+  Future<bool> enablePictureInPicture() async {
+    final instance = await platform.future;
+    return instance.enablePictureInPicture();
+  }
+
+  /// Disable Picture in Picture.
+  Future<void> disablePictureInPicture() async {
+    final instance = await platform.future;
+    return instance.disablePictureInPicture();
+  }
+
+  /// Enable automatically entering Picture in Picture when app goes into background.
+  /// Returns true if this is supported on current platofrm.
+  Future<bool> enableAutoPictureInPicture() async {
+    final instance = await platform.future;
+    return instance.enableAutoPictureInPicture();
+  }
+
+  /// Disables automatically entering Picture in Picture when app goes into background.
+  Future<void> disableAutoPictureInPicture() async {
+    final instance = await platform.future;
+    return instance.disableAutoPictureInPicture();
+  }
+
+  /// Enters Picture in Picture view for current video.
+  Future<bool> enterPictureInPicture() async {
+    final instance = await platform.future;
+    return instance.enterPictureInPicture();
+  }
+
+  // airplay
+  Future<bool> enableAirPlay() async {
+    final instance = await platform.future;
+    return instance.enableAirPlay();
   }
 
   /// Sets the required size of the video output.

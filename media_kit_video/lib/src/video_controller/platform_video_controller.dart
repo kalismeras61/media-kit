@@ -51,6 +51,47 @@ abstract class PlatformVideoController {
     int? height,
   });
 
+  /// Refreshes playback state (on play/pause, seek or duration change).
+  /// Used to invalidate Picture in Picture view data.
+  Future<void> refreshPlaybackState() async {
+    return;
+  }
+
+  /// Checks whether Picture in Picture is available on current platform.
+  Future<bool> isPictureInPictureAvailable() async {
+    return false;
+  }
+
+  /// Enable Picture in Picture.
+  /// Returns true if this is supported on current platofrm.
+  Future<bool> enablePictureInPicture() async {
+    return false;
+  }
+
+  /// Disable Picture in Picture.
+  Future<void> disablePictureInPicture() async {}
+
+  /// Enable automatically entering Picture in Picture when app goes into background.
+  /// Returns true if this is supported on current platofrm.
+  Future<bool> enableAutoPictureInPicture() async {
+    return false;
+  }
+
+  /// Disables automatically entering Picture in Picture when app goes into background.
+  Future<void> disableAutoPictureInPicture() async {
+    return;
+  }
+
+  /// Enters Picture in Picture view for current video.
+  Future<bool> enterPictureInPicture() async {
+    return false;
+  }
+
+  /// Enable AirPlay.
+  Future<bool> enableAirPlay() async {
+    return false;
+  }
+
   /// A [Future] that completes when the first video frame has been rendered.
   Future<void> get waitUntilFirstFrameRendered =>
       waitUntilFirstFrameRenderedCompleter.future;
@@ -59,6 +100,11 @@ abstract class PlatformVideoController {
   /// Use [waitUntilFirstFrameRendered] to wait for the first frame to be rendered.
   @protected
   final waitUntilFirstFrameRenderedCompleter = Completer<void>();
+
+  void dispose() {
+    id.dispose();
+    rect.dispose();
+  }
 }
 
 /// {@template video_controller_configuration}
@@ -103,6 +149,9 @@ class VideoControllerConfiguration {
 
   /// Whether to enable hardware acceleration.
   ///
+  /// DO NOT DISABLE THIS OPTION MEANINGLESSLY.
+  /// THE BATTERY WILL DRAIN, THE DEVICE MAY HEAT UP & CPU USAGE WILL BE HIGH.
+  ///
   /// Default: `true`
   final bool enableHardwareAcceleration;
 
@@ -123,4 +172,27 @@ class VideoControllerConfiguration {
     this.enableHardwareAcceleration = true,
     this.androidAttachSurfaceAfterVideoParameters,
   });
+
+  /// Returns a copy of this class with the given fields replaced by the new values.
+  VideoControllerConfiguration copyWith({
+    String? vo,
+    String? hwdec,
+    double? scale,
+    int? width,
+    int? height,
+    bool? enableHardwareAcceleration,
+    bool? androidAttachSurfaceAfterVideoParameters,
+  }) =>
+      VideoControllerConfiguration(
+        vo: vo ?? this.vo,
+        hwdec: hwdec ?? this.hwdec,
+        scale: scale ?? this.scale,
+        width: width ?? this.width,
+        height: height ?? this.height,
+        enableHardwareAcceleration:
+            enableHardwareAcceleration ?? this.enableHardwareAcceleration,
+        androidAttachSurfaceAfterVideoParameters:
+            androidAttachSurfaceAfterVideoParameters ??
+                this.androidAttachSurfaceAfterVideoParameters,
+      );
 }

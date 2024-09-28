@@ -4,21 +4,14 @@
 /// All rights reserved.
 /// Use of this source code is governed by MIT license that can be found in the LICENSE file.
 import 'dart:io';
-import 'dart:ffi';
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 
 import 'package:media_kit/media_kit.dart';
-// ignore_for_file: unused_import, implementation_imports
-import 'package:media_kit/ffi/ffi.dart';
-import 'package:media_kit/src/player/native/core/native_library.dart';
-
-import 'package:media_kit/generated/libmpv/bindings.dart';
 
 import 'package:media_kit_video/src/utils/query_decoders.dart';
-import 'package:media_kit_video/src/video_controller/video_controller.dart';
 import 'package:media_kit_video/src/video_controller/platform_video_controller.dart';
 
 /// {@template native_video_controller}
@@ -41,24 +34,53 @@ class NativeVideoController extends PlatformVideoController {
       Platform.isMacOS ||
       Platform.isIOS;
 
+  bool playing = false;
+
   /// Fixed width of the video output.
   int? width;
 
   /// Fixed height of the video output.
   int? height;
 
+  NativePlayer get platform => player.platform as NativePlayer;
+
+  Future<void> setProperty(String key, String value) async {
+    await platform.setProperty(key, value, waitForInitialization: false);
+  }
+
+  Future<void> setProperties(Map<String, String> properties) async {
+    // ORDER IS IMPORTANT.
+    for (final entry in properties.entries) {
+      await setProperty(entry.key, entry.value);
+    }
+  }
+
   /// {@macro native_video_controller}
   NativeVideoController._(
     super.player,
     super.configuration,
   )   : width = configuration.width,
-        height = configuration.height;
+        height = configuration.height {
+    player.stream.playing.listen((e) async {
+      refreshPlaybackState();
+    });
+
+    player.stream.duration.listen((e) async {
+      refreshPlaybackState();
+    });
+  }
 
   /// {@macro native_video_controller}
   static Future<PlatformVideoController> create(
     Player player,
     VideoControllerConfiguration configuration,
   ) async {
+    // Update [configuration] to have default values.
+    configuration = configuration.copyWith(
+      vo: configuration.vo ?? 'libmpv',
+      hwdec: configuration.hwdec ?? 'auto',
+    );
+
     // Retrieve the native handle of the [Player].
     final handle = await player.handle;
     // Return the existing [VideoController] if it's already created.
@@ -91,34 +113,21 @@ class NativeVideoController extends PlatformVideoController {
     // Store the [NativeVideoController] in the [_controllers].
     _controllers[handle] = controller;
 
-    // ----------------------------------------------
-    NativeLibrary.ensureInitialized();
-    final mpv = MPV(DynamicLibrary.open(NativeLibrary.path));
-    final values = {
-      'vo': configuration.vo ?? 'libmpv',
-      'hwdec': configuration.hwdec ?? 'auto',
-      'vid': 'auto',
-    };
-    for (final entry in values.entries) {
-      final property = entry.key.toNativeUtf8();
-      final value = entry.value.toNativeUtf8();
-      mpv.mpv_set_property_string(
-        Pointer.fromAddress(handle),
-        property.cast(),
-        value.cast(),
-      );
-      calloc.free(property);
-      calloc.free(value);
-    }
-    // ----------------------------------------------
+    await controller.setProperties(
+      {
+        'vo': configuration.vo!,
+        'hwdec': configuration.hwdec!,
+        'vid': 'auto',
+      },
+    );
 
-    // Wait until first texture ID is received i.e. render context & EGL/D3D surface is created.
+    // Wait until first texture ID is received.
     // We are not waiting on the native-side itself because it will block the UI thread.
-    // Background platform channels are not a thing yet.
     final completer = Completer<void>();
     void listener() {
-      if (controller.id.value != null) {
-        debugPrint('NativeVideoController: Texture ID: ${controller.id.value}');
+      final value = controller.id.value;
+      if (value != null) {
+        debugPrint('NativeVideoController: Texture ID: $value');
         completer.complete();
       }
     }
@@ -186,8 +195,122 @@ class NativeVideoController extends PlatformVideoController {
     }
   }
 
+  /// Refreshes playback state (on play/pause, seek or duration change).
+  /// Used to invalidate Picture in Picture view data.
+  @override
+  Future<void> refreshPlaybackState() async {
+    if (!Platform.isIOS) {
+      return;
+    }
+
+    final handle = await player.handle;
+    await _channel.invokeMethod(
+      'VideoOutputManager.RefreshPlaybackState',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
+  /// Checks whether Picture in Picture is available on current platform.
+  @override
+  Future<bool> isPictureInPictureAvailable() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    final handle = await player.handle;
+    return await _channel.invokeMethod(
+      'VideoOutputManager.IsPictureInPictureAvailable',
+      {},
+    );
+  }
+
+  /// Enable Picture in Picture.
+  /// Returns true if this is supported on current platofrm.
+  @override
+  Future<bool> enablePictureInPicture() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    final handle = await player.handle;
+    return await _channel.invokeMethod(
+      'VideoOutputManager.EnablePictureInPicture',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
+  /// Disable Picture in Picture.
+  @override
+  Future<void> disablePictureInPicture() async {
+    if (!Platform.isIOS) {
+      return;
+    }
+
+    final handle = await player.handle;
+    return await _channel.invokeMethod(
+      'VideoOutputManager.DisablePictureInPicture',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
+  /// Enable automatically entering Picture in Picture when app goes into background.
+  /// Returns true if this is supported on current platofrm.
+  @override
+  Future<bool> enableAutoPictureInPicture() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    final handle = await player.handle;
+    return await _channel.invokeMethod(
+      'VideoOutputManager.EnableAutoPictureInPicture',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
+  /// Disables automatically entering Picture in Picture when app goes into background.
+  @override
+  Future<void> disableAutoPictureInPicture() async {
+    if (!Platform.isIOS) {
+      return;
+    }
+
+    final handle = await player.handle;
+    await _channel.invokeMethod(
+      'VideoOutputManager.DisableAutoPictureInPicture',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
+  /// Enters Picture in Picture view for current video.
+  @override
+  Future<bool> enterPictureInPicture() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    final handle = await player.handle;
+    return await _channel.invokeMethod(
+      'VideoOutputManager.EnterPictureInPicture',
+      {
+        'handle': handle.toString(),
+      },
+    );
+  }
+
   /// Disposes the instance. Releases allocated resources back to the system.
   Future<void> _dispose() async {
+    super.dispose();
     final handle = await player.handle;
     _controllers.remove(handle);
     await _channel.invokeMethod(
@@ -196,6 +319,26 @@ class NativeVideoController extends PlatformVideoController {
         'handle': handle.toString(),
       },
     );
+  }
+
+  @override
+  Future<bool> enableAirPlay() async {
+    if (!Platform.isIOS) {
+      return false;
+    }
+
+    final handle = await player.handle;
+    try {
+      return await _channel.invokeMethod(
+        'VideoOutputManager.ShowAirPlayButton',
+        {
+          'handle': handle.toString(),
+        },
+      );
+    } catch (e) {
+      debugPrint('Failed to show AirPlay button: $e');
+      return false;
+    }
   }
 
   /// Currently created [NativeVideoController]s.

@@ -1333,9 +1333,14 @@ class NativePlayer extends PlatformPlayer {
   /// * `image/jpeg`: Returns a JPEG encoded image.
   /// * `image/png`: Returns a PNG encoded image.
   /// * `null`: Returns BGRA pixel buffer.
+  ///
+  /// If [includeLibassSubtitles] is `true` *and* [PlayerConfiguration.libass] is `true`, then the
+  /// screenshot will include the on-screen subtitles.
   @override
   Future<Uint8List?> screenshot(
-      {String? format = 'image/jpeg', bool synchronized = true}) async {
+      {String? format = 'image/jpeg',
+      bool synchronized = true,
+      bool includeLibassSubtitles = false}) async {
     Future<Uint8List?> function() async {
       if (![
         'image/jpeg',
@@ -1361,6 +1366,7 @@ class NativePlayer extends PlatformPlayer {
           ctx.address,
           NativeLibrary.path,
           format,
+          includeLibassSubtitles,
         ),
       );
     }
@@ -1389,12 +1395,19 @@ class NativePlayer extends PlatformPlayer {
   /// * https://mpv.io/manual/master/#options
   /// * https://mpv.io/manual/master/#properties
   ///
-  Future<void> setProperty(String property, String value) async {
+  Future<void> setProperty(
+    String property,
+    String value, {
+    bool waitForInitialization = true,
+  }) async {
     if (disposed) {
       throw AssertionError('[Player] has been disposed');
     }
-    await waitForPlayerInitialization;
-    await waitForVideoControllerInitializationIfAttached;
+
+    if (waitForInitialization) {
+      await waitForPlayerInitialization;
+      await waitForVideoControllerInitializationIfAttached;
+    }
 
     final name = property.toNativeUtf8();
     final data = value.toNativeUtf8();
@@ -1414,12 +1427,18 @@ class NativePlayer extends PlatformPlayer {
   /// * https://mpv.io/manual/master/#options
   /// * https://mpv.io/manual/master/#properties
   ///
-  Future<String> getProperty(String property) async {
+  Future<String> getProperty(
+    String property, {
+    bool waitForInitialization = true,
+  }) async {
     if (disposed) {
       throw AssertionError('[Player] has been disposed');
     }
-    await waitForPlayerInitialization;
-    await waitForVideoControllerInitializationIfAttached;
+
+    if (waitForInitialization) {
+      await waitForPlayerInitialization;
+      await waitForVideoControllerInitializationIfAttached;
+    }
 
     final name = property.toNativeUtf8();
     final value = mpv.mpv_get_property_string(ctx, name.cast());
@@ -1443,13 +1462,17 @@ class NativePlayer extends PlatformPlayer {
   ///
   Future<void> observeProperty(
     String property,
-    Future<void> Function(String) listener,
-  ) async {
+    Future<void> Function(String) listener, {
+    bool waitForInitialization = true,
+  }) async {
     if (disposed) {
       throw AssertionError('[Player] has been disposed');
     }
-    await waitForPlayerInitialization;
-    await waitForVideoControllerInitializationIfAttached;
+
+    if (waitForInitialization) {
+      await waitForPlayerInitialization;
+      await waitForVideoControllerInitializationIfAttached;
+    }
 
     if (observed.containsKey(property)) {
       throw ArgumentError.value(
@@ -1477,12 +1500,18 @@ class NativePlayer extends PlatformPlayer {
   /// * https://mpv.io/manual/master/#options
   /// * https://mpv.io/manual/master/#properties
   ///
-  Future<void> unobserveProperty(String property) async {
+  Future<void> unobserveProperty(
+    String property, {
+    bool waitForInitialization = true,
+  }) async {
     if (disposed) {
       throw AssertionError('[Player] has been disposed');
     }
-    await waitForPlayerInitialization;
-    await waitForVideoControllerInitializationIfAttached;
+
+    if (waitForInitialization) {
+      await waitForPlayerInitialization;
+      await waitForVideoControllerInitializationIfAttached;
+    }
 
     if (!observed.containsKey(property)) {
       throw ArgumentError.value(
@@ -1502,12 +1531,18 @@ class NativePlayer extends PlatformPlayer {
   /// See:
   /// * https://mpv.io/manual/master/#list-of-input-commands
   ///
-  Future<void> command(List<String> command) async {
+  Future<void> command(
+    List<String> command, {
+    bool waitForInitialization = true,
+  }) async {
     if (disposed) {
       throw AssertionError('[Player] has been disposed');
     }
-    await waitForPlayerInitialization;
-    await waitForVideoControllerInitializationIfAttached;
+
+    if (waitForInitialization) {
+      await waitForPlayerInitialization;
+      await waitForVideoControllerInitializationIfAttached;
+    }
 
     await _command(command);
   }
@@ -1667,6 +1702,16 @@ class NativePlayer extends PlatformPlayer {
         state = state.copyWith(buffer: buffer);
         if (!bufferController.isClosed) {
           bufferController.add(buffer);
+        }
+      }
+      if (prop.ref.name.cast<Utf8>().toDartString() ==
+              'cache-buffering-state' &&
+          prop.ref.format == generated.mpv_format.MPV_FORMAT_DOUBLE) {
+        final bufferingPercentage = prop.ref.data.cast<Double>().value;
+
+        state = state.copyWith(bufferingPercentage: bufferingPercentage);
+        if (!bufferingPercentageController.isClosed) {
+          bufferingPercentageController.add(bufferingPercentage);
         }
       }
       if (prop.ref.name.cast<Utf8>().toDartString() == 'time-pos' &&
@@ -2353,7 +2398,9 @@ class NativePlayer extends PlatformPlayer {
             if (start != null) {
               try {
                 final property = 'start'.toNativeUtf8();
-                final value = (start.inMilliseconds / 1000).toStringAsFixed(3).toNativeUtf8();
+                final value = (start.inMilliseconds / 1000)
+                    .toStringAsFixed(3)
+                    .toNativeUtf8();
                 mpv.mpv_set_property_string(
                   ctx,
                   property.cast(),
@@ -2370,7 +2417,9 @@ class NativePlayer extends PlatformPlayer {
             if (end != null) {
               try {
                 final property = 'end'.toNativeUtf8();
-                final value = (end.inMilliseconds / 1000).toStringAsFixed(3).toNativeUtf8();
+                final value = (end.inMilliseconds / 1000)
+                    .toStringAsFixed(3)
+                    .toNativeUtf8();
                 mpv.mpv_set_property_string(
                   ctx,
                   property.cast(),
@@ -2471,7 +2520,8 @@ class NativePlayer extends PlatformPlayer {
 
       if (Platform.isAndroid &&
           configuration.libass &&
-          configuration.libassAndroidFont != null) {
+          configuration.libassAndroidFont != null &&
+          configuration.libassAndroidFontName != null) {
         try {
           // On Android, the system fonts cannot be picked up by libass/fontconfig. This makes libass subtitle rendering fail.
           // We save the subtitle font to the application's cache directory and set `config` & `config-dir` to use it.
@@ -2488,7 +2538,8 @@ class NativePlayer extends PlatformPlayer {
             options.addAll(
               {
                 'config': 'yes',
-                'config-dir': directory,
+                'sub-fonts-dir': directory,
+                'sub-font': configuration.libassAndroidFontName ?? '',
               },
             );
             print(subfont);
@@ -2623,6 +2674,7 @@ class NativePlayer extends PlatformPlayer {
         'core-idle': generated.mpv_format.MPV_FORMAT_FLAG,
         'paused-for-cache': generated.mpv_format.MPV_FORMAT_FLAG,
         'demuxer-cache-time': generated.mpv_format.MPV_FORMAT_DOUBLE,
+        'cache-buffering-state': generated.mpv_format.MPV_FORMAT_DOUBLE,
         'audio-params': generated.mpv_format.MPV_FORMAT_NODE,
         'audio-bitrate': generated.mpv_format.MPV_FORMAT_DOUBLE,
         'audio-device': generated.mpv_format.MPV_FORMAT_NODE,
@@ -2794,11 +2846,13 @@ class _ScreenshotData {
   final int ctx;
   final String lib;
   final String? format;
+  final bool includeLibassSubtitles;
 
   const _ScreenshotData(
     this.ctx,
     this.lib,
     this.format,
+    this.includeLibassSubtitles,
   );
 }
 
@@ -2814,7 +2868,7 @@ Uint8List? _screenshot(_ScreenshotData data) {
   // https://mpv.io/manual/stable/#command-interface-screenshot-raw
   final args = [
     'screenshot-raw',
-    'video',
+    data.includeLibassSubtitles ? 'subtitles' : 'video',
   ];
 
   final result = calloc<generated.mpv_node>();
